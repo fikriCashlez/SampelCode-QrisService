@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
+import static org.example.AESUtils.decryptAES;
 import static org.example.RSAUtil.*;
 
 public class Main {
@@ -45,6 +46,32 @@ public class Main {
     private static String sAmountKsn;
     private static String sAmountEnc;
     private static String sAmountSHA512;
+    private static String base64KeyQrisStatic =
+            "MIIEpAIBAAKCAQEAwMFI4esz6QUY/ndYSARcX2KTCf704HpxGD6j4Nh9PaqGCS++" +
+                    "PirLqNEM0/SQRREze9mPVazh+OjnYdMUhYVPI7qCNN6cVsBYqtVwtcnx5JNBKhLt" +
+                    "0erBWiW+kWX7OhK/1ssLagsStosxIljgIBJVC4lqyqihFJb0GdOvlPomfZD01bxL" +
+                    "0s7o3RmFkuN6FMsl2VAmWG6Lpco6KgsYKVIw8qrgMLWtzS6086Jkbk2vlxatFBkN" +
+                    "3C6pPZidHACuPWTmYQioW9PrKcXcqZn9YB+cCU/bHTxNKwoxVpOq6DqoU6xTn+JP" +
+                    "EwymDARA+/jHKhPVSerlgXIx5enLNXr/YwYILQIDAQABAoIBAGnTdH08kbJ0bwV+" +
+                    "ZoSbiE+CIjJRvQXlk2P5OCYBFbmefppakPs2qbvUklNoKTESQY7UomIqWaI71JUbu" +
+                    "1+XEh0Oj+AQ/AqQ7d1U892KsviIdDVyUQl39pHUuSzArc5zbsmxjmG5FJwODXrLC" +
+                    "rnw9qov1ubO8CkKu5fWZcbIFAvJbn/GaCtKthIL5rlZDKRYC6+BpAOq5jrfm5txT" +
+                    "yJxJs8uSiRIUl9+TwYuw4tZ/Fi4ety0T5B1it20HAgqTB+tAM/38gAGwForFyVTM" +
+                    "MRlDHqIT7Sw26XAv6NZmF4QRwArmwnO18RjnfJlBgNHPMk+EerMz9/3N63ZUFmkW" +
+                    "uBNf4ECgYEA7T6Tv64WQggnS1u06m2+i1eedR4ny2//EbMva0ujuVfkJQe9CqhTp" +
+                    "8ZarhIFF0vOuOl/1NgTGVPrbUmgxRGsmqw9FZDsi2H5lnTdkrEN7ibFW1xA0CuHo" +
+                    "xRSQMs3rf6tUSONZT4y2nK3jd8At/m6w57Okkyo4aInGhG4LP1ReSECgYEAz/5RR" +
+                    "8sGaFCx/Sk+1wwjtI6tKd14fdgid+FMDr1kaCJvS1FAl6XM96wY1Z2CRvr4PeV9m" +
+                    "AIdX8drKaiJcgLdjYTZj7vAO4m0D2PengNyELL8mwZtM+jq3v9jayBF1CSyNAfZE" +
+                    "zeLothEMcqMcH0EzKXj6Az/2CpPiVNBPgMXMY0CgYEA0aNlPZCgfHLl/hIoWKrnI" +
+                    "AwpqkYeVgc+Ni7HLSGmqCXBJPOkmWFKosuE36JuuzoyjnVOjw7sOYpNU8Im/Vzzz" +
+                    "615QLBSRYwq10enb3Ni4tmBtYxcfVapwXI4iKbKKccM8dDfpeIDX8LU7dlrsiZLY" +
+                    "YbX9LEm3lLCCKg1vhOOReECgYEAkvD8w1evoyq/VDc7afntj7XsqFMKuP1k/IRyk" +
+                    "0dCFD+fmPpCQ+CiuacftGqeiz7q+e+TlzyHPA9KqhejYqSbmUtt2Jmv6WATkXvg3" +
+                    "olYoGuTAoK7y5yVsg2DUz9tlb6HFzMkLOtk/xsCspqCNUZdiab5KAtnBHR/1Gi5A" +
+                    "vJ0BFECgYAL9ZsQ/r4uuzzujQceTHx/ZmZkIYYmqCyWrCLjMJurRikpNKczoY5+D" +
+                    "vPtraeEbWvxLyFJsDYwUUDkZUQDEVtteOjYyCojWV08OoMeRxpmwkOiJho/WF71k" +
+                    "sCzmCHDTk03VXDWluZinkC8KAlOf+zd3RDYCV8tccI+qJ3gKICNQQ==";
 
     public static void main(String[] args) {
         Security.addProvider(new BouncyCastleProvider());
@@ -52,14 +79,14 @@ public class Main {
         //TODO: 1. Function to handle login process
         doLogin();
 
+        //TODO: 1. Function to connect Message Broker MQTT Cashlez
+        connectedToMqtt();
+
         //TODO: 3. Function to encrypt the transaction amount - "Request Data"
         generateEncAmount(5); //TODO: Adjust the amount based on your needs.
 
         //TODO: 3.a Function to Generate QR Code
         generateQRCode();
-
-        //TODO: 1. Function to connect Message Broker MQTT Cashlez
-        connectedToMqtt();
     }
 
     private static void connectedToMqtt() {
@@ -123,14 +150,28 @@ public class Main {
                     .callback(mqtt3Publish -> {
                         byte[] payload = mqtt3Publish.getPayloadAsBytes();
                         String jsonString = new String(payload);
-                        System.out.println("*Received message*");
-                        System.out.println("Topic : " + mqtt3Publish.getTopic());
-                        System.out.println("Payload All Received message : " + new String(mqtt3Publish.getPayloadAsBytes()));
                         try {
                             JSONObject json = new JSONObject(jsonString);
-                            String invoiceNum = json.getString("invoice_num");
-                            System.out.println("Invoice Number : " + invoiceNum);
-                            checkStatusQR(invoiceNum);
+                            String invoiceNum = json.optString("invoice_num", null);
+                            String encPayload = json.optString("enc_payload", null);
+                            String encIv = json.optString("enc_iv", null);
+                            String encKey = json.optString("enc_key", null);
+                            if (invoiceNum != null && !invoiceNum.isEmpty()) {
+                                System.out.println("Received message QRIS Dynamic: ");
+                                System.out.println("Topic : " + mqtt3Publish.getTopic());
+                                System.out.println("Payload All Received message QRIS Dynamic: " + new String(mqtt3Publish.getPayloadAsBytes()));
+                            } else {
+                                String hexKey = decryptByPrivateKey(hexStringToBytes(encKey), base64KeyQrisStatic);
+                                String hexIv = decryptByPrivateKey(hexStringToBytes(encIv), base64KeyQrisStatic);
+                                byte[] baPayload = decryptAES(hexStringToBytes(hexKey), hexStringToBytes(hexIv), hexStringToBytes(encPayload));
+                                String hexPayload = bytesToHex(baPayload);
+
+                                System.out.println("Received message QRIS Static: ");
+                                System.out.println("Topic : " + mqtt3Publish.getTopic());
+                                System.out.println("Payload All Received message QRIS Static: " + hexToString(hexPayload));
+
+                            }
+
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -299,7 +340,6 @@ public class Main {
             System.out.println("Amount IPEK--------------: " + amountIpek); //TODO: From the decrypted Amount IPEK, take the last 32 characters
             System.out.println("General IPEK-------------: " + generalIpek); //TODO: From the decrypted General IPEK, take the last 32 characters
             System.out.println("General KSN--------------: " + generalKsn); //TODO: From the decrypted General KSN, take the last 20 characters
-
 
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
@@ -681,5 +721,14 @@ public class Main {
             e.printStackTrace();
         }
         return stringBuffer.toString();
+    }
+
+    public static String hexToString(String hex) {
+        StringBuilder output = new StringBuilder();
+        for (int i = 0; i < hex.length(); i += 2) {
+            String str = hex.substring(i, i + 2);
+            output.append((char) Integer.parseInt(str, 16));
+        }
+        return output.toString();
     }
 }
