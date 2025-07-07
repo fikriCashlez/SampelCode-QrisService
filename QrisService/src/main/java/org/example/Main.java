@@ -146,7 +146,7 @@ public class Main {
             });
 
             client.subscribeWith()
-                    .topicFilter("payment/tyo")  // topic yang mau disubscribe
+                    .topicFilter("payment/tyo")  // topic yang mau disubscribe {payment/username}
                     .callback(mqtt3Publish -> {
                         byte[] payload = mqtt3Publish.getPayloadAsBytes();
                         String jsonString = new String(payload);
@@ -156,11 +156,12 @@ public class Main {
                             String encPayload = json.optString("enc_payload", null);
                             String encIv = json.optString("enc_iv", null);
                             String encKey = json.optString("enc_key", null);
-                            if (invoiceNum != null && !invoiceNum.isEmpty()) {
+                            if (invoiceNum != null && !invoiceNum.isEmpty()) { //Specifically for QR Dynamic.
                                 System.out.println("Received message QRIS Dynamic: ");
                                 System.out.println("Topic : " + mqtt3Publish.getTopic());
                                 System.out.println("Payload All Received message QRIS Dynamic: " + new String(mqtt3Publish.getPayloadAsBytes()));
-                            } else {
+                                checkStatusQR(invoiceNum);
+                            } else {  //Specifically for QR Static.
                                 String hexKey = decryptByPrivateKey(hexStringToBytes(encKey), base64KeyQrisStatic);
                                 String hexIv = decryptByPrivateKey(hexStringToBytes(encIv), base64KeyQrisStatic);
                                 byte[] baPayload = decryptAES(hexStringToBytes(hexKey), hexStringToBytes(hexIv), hexStringToBytes(encPayload));
