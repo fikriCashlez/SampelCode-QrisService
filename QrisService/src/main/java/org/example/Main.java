@@ -120,13 +120,13 @@ public class Main {
             sslContext.init(null, tmf.getTrustManagers(), null);
             HostnameVerifier allHostsValid = (hostname, session) -> true;
 
-            // ✅ 5. Bangun MqttClientSslConfig MANUAL (bukan lambda)
+
             MqttClientSslConfig sslConfig = MqttClientSslConfig.builder()
                     .trustManagerFactory(tmf)
                     .hostnameVerifier(allHostsValid)  // override hostname verifier
                     .build();
 
-            // ✅ 6. Build client pakai sslConfig
+
             String clientId = "client-" + UUID.randomUUID();
             Mqtt3AsyncClient client = MqttClient.builder()
                     .useMqttVersion3()
